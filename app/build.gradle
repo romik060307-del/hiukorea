@@ -1,0 +1,45 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.rkdesign.koreamaster'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.rkdesign.koreamaster'
+        // Android 6.0+ (Android Oreo 8.0 / 8.1 = API 26 / 27 sudah tercakup)
+        minSdk 23
+        // 34 sengaja dipilih: di Android 15+ tampilan tidak dipaksa "edge-to-edge",
+        // jadi halaman web tidak tertimpa status bar / tombol navigasi.
+        targetSdk 34
+        versionCode 2
+        versionName '1.0.1'
+    }
+
+    // Kunci tanda tangan TETAP: semua build dari GitHub bisa dipasang menimpa
+    // versi sebelumnya TANPA menghapus aplikasi (akun & progres belajar tetap aman).
+    signingConfigs {
+        koreamaster {
+            storeFile file('koreamaster.jks')
+            storePassword 'koreamaster123'
+            keyAlias 'koreamaster'
+            keyPassword 'koreamaster123'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.koreamaster
+        }
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.koreamaster
+        }
+    }
+}
