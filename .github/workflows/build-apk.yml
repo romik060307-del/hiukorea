@@ -1,0 +1,70 @@
+name: Build Hiu Korea APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main", "master" ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.5.0'
+
+      # v4 no longer asks sdkmanager for Google's retired "tools" package.
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+          log-accepted-android-sdk-licenses: 'false'
+
+      - name: Install required Android SDK packages
+        run: sdkmanager --install "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Build debug APK
+        run: gradle --no-daemon --stacktrace assembleDebug
+
+      - name: Copy APK to a simple file name
+        run: cp app/build/outputs/apk/debug/app-debug.apk HiuKorea.apk
+
+      # Informational only: shows minSdk and signature in the log. Never fails the build.
+      - name: Show APK info (minSdk, signature)
+        continue-on-error: true
+        run: |
+          BT="$ANDROID_HOME/build-tools/36.0.0"
+          "$BT/aapt2" dump badging HiuKorea.apk | grep -E "^package|sdkVersion|targetSdkVersion" || true
+          "$BT/apksigner" verify --verbose --print-certs HiuKorea.apk | head -20 || true
+
+      - name: Upload APK (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: HiuKorea-APK
+          path: HiuKorea.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      # Direct .apk download (no ZIP) from the repository's "Releases" page.
+      - name: Publish APK to Releases
+        continue-on-error: true
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: hiu-build-${{ github.run_number }}
+          name: Hiu Korea build ${{ github.run_number }}
+          prerelease: true
+          files: HiuKorea.apk
